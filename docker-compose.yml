@@ -1,0 +1,36 @@
+version: '3.4'
+
+services:
+  todoappgo:
+    container_name: rest-api
+    image: todoappgo
+    depends_on:
+      sql-server-db:
+        # rest-api attempts to connect right away so need to wait until db is really up
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    env_file:
+      - .env
+    ports:
+      - 8080:8080
+
+  sql-server-db:
+    container_name: sql-server-db
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    ports:
+      - "11433:1433"
+    volumes:
+      - mssql_todoappgo:/var/opt/mssql
+    environment:
+      SA_PASSWORD: "PasS1234"
+      ACCEPT_EULA: "Y"
+    healthcheck:
+      test: "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $${SA_PASSWORD} -Q \"SELECT 1\""
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mssql_todoappgo:
